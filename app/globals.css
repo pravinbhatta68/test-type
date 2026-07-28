@@ -312,7 +312,7 @@ textarea:focus-visible {
 .typing-portrait img {
   display: block;
   width: 100%;
-  aspect-ratio: 9 / 16;
+  aspect-ratio: 117 / 140;
   border-radius: 21px;
   object-fit: cover;
   object-position: center;

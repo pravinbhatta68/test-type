@@ -169,10 +169,10 @@ export default function Home() {
           </div>
           <figure className="typing-portrait">
             <img
-              src="/digital-pravin-typing-9x16.png"
+              src="/digital-pravin-typing-table-crop.png"
               alt="Digital Pravin practicing typing at his desk"
               width="936"
-              height="1664"
+              height="1120"
             />
             <figcaption>
               <span>Digital Pravin</span>
