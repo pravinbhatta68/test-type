@@ -171,10 +171,12 @@ export default function Home() {
             and let your fingers do the thinking.
           </p>
           <div className="key-row" aria-hidden="true">
-            <span>T</span>
-            <span>Y</span>
-            <span>P</span>
-            <span>E</span>
+            {["T", "Y", "P", "E"].map((letter) => (
+              <span className="pop-key" key={letter}>
+                <i />
+                <b>{letter}</b>
+              </span>
+            ))}
           </div>
         </div>
       </section>
