@@ -221,6 +221,20 @@ textarea:focus-visible {
   padding: clamp(50px, 6.8vw, 94px) 0 clamp(40px, 5vw, 65px);
 }
 
+.intro-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.22fr) minmax(245px, 0.78fr);
+  gap: clamp(24px, 3vw, 46px);
+  align-items: center;
+  min-width: 0;
+}
+
+.intro-heading {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+}
+
 .eyebrow {
   display: flex;
   gap: 11px;
@@ -249,7 +263,7 @@ textarea:focus-visible {
 .intro h1 {
   max-width: 900px;
   margin: 0;
-  font-size: clamp(62px, 9.2vw, 138px);
+  font-size: clamp(62px, 7.4vw, 112px);
   font-variation-settings: "wght" 880;
   letter-spacing: -0.085em;
   line-height: 0.78;
@@ -280,6 +294,83 @@ textarea:focus-visible {
   background: var(--pink);
   content: "";
   transform: rotate(-2deg);
+}
+
+.typing-portrait {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  margin: 0;
+  border: 2px solid var(--ink);
+  border-radius: 24px;
+  background: var(--ink);
+  box-shadow:
+    8px 8px 0 var(--pink),
+    15px 15px 0 var(--yellow),
+    0 26px 52px rgba(45, 29, 52, 0.18);
+  transform: rotate(1.5deg);
+  transition: box-shadow 300ms ease,
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.typing-portrait::before {
+  position: absolute;
+  top: 13px;
+  left: -14px;
+  z-index: 3;
+  padding: 7px 10px 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--yellow);
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--ink);
+  content: "IN FLOW";
+  font-size: 8px;
+  font-variation-settings: "wght" 900;
+  letter-spacing: 0.12em;
+}
+
+.typing-portrait img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 21px;
+  object-fit: cover;
+  object-position: 59% center;
+}
+
+.typing-portrait figcaption {
+  position: absolute;
+  right: 11px;
+  bottom: 11px;
+  left: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 11px;
+  background: rgba(23, 19, 31, 0.78);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 7px;
+  font-variation-settings: "wght" 760;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  backdrop-filter: blur(8px);
+}
+
+.typing-portrait figcaption span {
+  color: var(--white);
+  font-size: 9px;
+  font-variation-settings: "wght" 900;
+}
+
+.typing-portrait:hover {
+  box-shadow:
+    11px 11px 0 var(--pink),
+    20px 20px 0 var(--yellow),
+    0 32px 62px rgba(45, 29, 52, 0.22);
+  transform: rotate(0deg) translateY(-7px);
 }
 
 .intro-side {
@@ -1263,6 +1354,21 @@ footer a {
 
   .intro-side {
     grid-template-columns: 1fr;
+  }
+
+  .intro-main {
+    grid-template-columns: 1fr;
+    gap: 38px;
+  }
+
+  .typing-portrait {
+    width: calc(100% - 13px);
+    max-width: 560px;
+  }
+
+  .typing-portrait img {
+    aspect-ratio: 16 / 10;
+    object-position: center 44%;
   }
 
   .intro-copy {

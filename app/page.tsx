@@ -159,12 +159,26 @@ export default function Home() {
 
       <section className="intro">
         <div className="intro-main">
-          <p className="eyebrow">
-            <span>01</span> Daily typing practice
-          </p>
-          <h1>
-            Find your <em>rhythm.</em>
-          </h1>
+          <div className="intro-heading">
+            <p className="eyebrow">
+              <span>01</span> Daily typing practice
+            </p>
+            <h1>
+              Find your <em>rhythm.</em>
+            </h1>
+          </div>
+          <figure className="typing-portrait">
+            <img
+              src="/digital-pravin-typing.png"
+              alt="Digital Pravin practicing typing at his desk"
+              width="1536"
+              height="1024"
+            />
+            <figcaption>
+              <span>Digital Pravin</span>
+              Typing in flow
+            </figcaption>
+          </figure>
         </div>
         <div className="intro-side">
           <p className="intro-copy">
