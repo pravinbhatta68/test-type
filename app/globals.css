@@ -63,24 +63,12 @@ textarea:focus-visible {
   padding: 22px clamp(22px, 5vw, 78px) 34px;
 }
 
-.site-shell::before,
 .site-shell::after {
   position: fixed;
   z-index: -1;
   border: 2px solid var(--ink);
   content: "";
   pointer-events: none;
-}
-
-.site-shell::before {
-  top: 22%;
-  left: -74px;
-  width: 145px;
-  height: 145px;
-  border-radius: 36px;
-  background: var(--pink);
-  box-shadow: 12px 12px 0 var(--yellow);
-  transform: rotate(17deg);
 }
 
 .site-shell::after {
