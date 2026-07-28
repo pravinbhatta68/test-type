@@ -95,35 +95,30 @@ textarea:focus-visible {
   align-items: center;
   color: var(--ink);
   text-decoration: none;
-  perspective: 480px;
 }
 
 .brand-mark {
   position: relative;
   display: flex;
-  width: 47px;
+  width: 45px;
   height: 40px;
+  gap: 1px;
   align-items: center;
   justify-content: center;
   border: 2px solid var(--ink);
-  border-radius: 11px;
-  background: linear-gradient(145deg, #fff7a8 0%, var(--yellow) 38%, #ffbd27 100%);
-  box-shadow:
-    1px 1px 0 #b98500,
-    2px 2px 0 #9a7000,
-    3px 3px 0 #725300,
-    5px 6px 0 var(--ink),
-    8px 10px 14px rgba(23, 19, 31, 0.22);
-  transform: rotateY(-13deg) rotateZ(-4deg) translateZ(13px);
-  transform-style: preserve-3d;
-  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 12px;
+  background: var(--yellow);
+  transition: background-color 180ms ease;
 }
 
 .brand-mark::after {
   position: absolute;
-  inset: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 7px;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pink);
   content: "";
   pointer-events: none;
 }
@@ -132,48 +127,32 @@ textarea:focus-visible {
   position: relative;
   z-index: 1;
   color: var(--ink);
-  font-size: 18px;
-  font-variation-settings: "wght" 930;
-  letter-spacing: -0.23em;
+  font-size: 16px;
+  font-variation-settings: "wght" 900;
+  letter-spacing: -0.14em;
   line-height: 1;
-  text-shadow:
-    1px 1px 0 #fff7c4,
-    2px 2px 0 var(--pink),
-    3px 3px 0 #bd2559;
 }
 
 .brand-mark b:last-child {
-  margin-left: 1px;
-  color: var(--pink);
-  text-shadow:
-    1px 1px 0 #ffc1d6,
-    2px 2px 0 var(--ink);
+  color: #bb2457;
 }
 
 .brand-name {
   color: var(--ink);
   font-size: clamp(14px, 1.55vw, 19px);
   font-variation-settings: "wght" 900;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.035em;
   line-height: 1;
-  text-shadow:
-    1px 1px 0 #fff,
-    2px 2px 0 var(--pink-soft),
-    3px 3px 0 var(--pink),
-    4px 4px 0 #bd2559,
-    6px 7px 10px rgba(23, 19, 31, 0.18);
-  transform: rotateY(-5deg) translateZ(7px);
-  transform-origin: left center;
-  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 180ms ease;
   white-space: nowrap;
 }
 
 .brand:hover .brand-mark {
-  transform: rotateY(1deg) rotateZ(-1deg) translateY(-2px) translateZ(22px);
+  background: var(--pink-soft);
 }
 
 .brand:hover .brand-name {
-  transform: rotateY(0deg) translateY(-1px) translateZ(14px);
+  color: #bb2457;
 }
 
 .topbar-actions {
@@ -333,10 +312,10 @@ textarea:focus-visible {
 .typing-portrait img {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 9 / 16;
   border-radius: 21px;
   object-fit: cover;
-  object-position: 59% center;
+  object-position: center;
 }
 
 .typing-portrait figcaption {
@@ -1362,13 +1341,9 @@ footer a {
   }
 
   .typing-portrait {
-    width: calc(100% - 13px);
-    max-width: 560px;
-  }
-
-  .typing-portrait img {
-    aspect-ratio: 16 / 10;
-    object-position: center 44%;
+    width: min(360px, calc(100% - 13px));
+    margin-right: auto;
+    margin-left: auto;
   }
 
   .intro-copy {
