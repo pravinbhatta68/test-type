@@ -171,19 +171,17 @@ export default function Home() {
             and let your fingers do the thinking.
           </p>
           <div className="key-row" aria-hidden="true">
-            <div className="box-opening" />
-            <div className="letter-launch">
-              {["T", "Y", "P", "E"].map((letter) => (
-                <span className="pop-letter" key={letter}>
-                  <i />
-                  <b>{letter}</b>
-                </span>
-              ))}
-            </div>
-            <div className="box-front">
-              <span>TypeBloom</span>
-              <b>04 / studio keys</b>
-            </div>
+            <span className="character-orbit character-orbit-yellow" />
+            <span className="character-orbit character-orbit-pink" />
+            <span className="character-shadow" />
+            <img
+              src="/type-characters-3d.png"
+              alt=""
+              width="1536"
+              height="1536"
+              draggable="false"
+            />
+            <span className="character-label">3D studio type</span>
           </div>
         </div>
       </section>
