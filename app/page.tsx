@@ -112,7 +112,7 @@ export default function Home() {
     setTyped("");
     setRemaining(duration * 60);
     setPhase("running");
-    setStartedAt(Date.now());
+    setStartedAt(null);
     window.setTimeout(() => inputRef.current?.focus(), 0);
   };
 
@@ -126,6 +126,9 @@ export default function Home() {
   const handleInput = (value: string) => {
     if (phase !== "running") return;
     const next = value.slice(0, passage.length);
+    if (startedAt === null && next.length > 0) {
+      setStartedAt(Date.now());
+    }
     setTyped(next);
     if (next.length === passage.length) {
       window.setTimeout(finishTest, 0);
@@ -144,14 +147,17 @@ export default function Home() {
           </span>
           <span>TypeBloom</span>
         </a>
-        <div className="topbar-note">
-          <span className="live-dot" aria-hidden="true" />
-          100 fresh practice samples
+        <div className="topbar-actions">
+          <span className="header-chip">Focus studio</span>
+          <div className="topbar-note">
+            <span className="live-dot" aria-hidden="true" />
+            100 fresh practice samples
+          </div>
         </div>
       </header>
 
       <section className="intro">
-        <div>
+        <div className="intro-main">
           <p className="eyebrow">
             <span>01</span> Daily typing practice
           </p>
@@ -159,15 +165,35 @@ export default function Home() {
             Find your <em>rhythm.</em>
           </h1>
         </div>
-        <p className="intro-copy">
-          Build speed without losing precision. Pick your pace, settle in, and
-          let your fingers do the thinking.
-        </p>
+        <div className="intro-side">
+          <p className="intro-copy">
+            Build speed without losing precision. Pick your pace, settle in,
+            and let your fingers do the thinking.
+          </p>
+          <div className="key-row" aria-hidden="true">
+            <span>T</span>
+            <span>Y</span>
+            <span>P</span>
+            <span>E</span>
+          </div>
+        </div>
       </section>
 
       {phase === "setup" && (
-        <section className="setup-grid" aria-label="Test settings">
-          <div className="panel difficulty-panel">
+        <>
+          <div className="benefit-strip" aria-label="Practice benefits">
+            <span>
+              <b>01</b> Character-level feedback
+            </span>
+            <span>
+              <b>02</b> Fresh text every session
+            </span>
+            <span>
+              <b>03</b> Accurate WPM scoring
+            </span>
+          </div>
+          <section className="setup-grid" aria-label="Test settings">
+            <div className="panel difficulty-panel">
             <div className="panel-heading">
               <span className="step-number">1</span>
               <div>
@@ -197,9 +223,9 @@ export default function Home() {
                 );
               })}
             </div>
-          </div>
+            </div>
 
-          <div className="panel duration-panel">
+            <div className="panel duration-panel">
             <div className="panel-heading">
               <span className="step-number pink">2</span>
               <div>
@@ -228,10 +254,11 @@ export default function Home() {
               <span aria-hidden="true">↗</span>
             </button>
             <p className="keyboard-hint">
-              Your timer begins as soon as you press start
+              The clock waits for your first keystroke
             </p>
-          </div>
-        </section>
+            </div>
+          </section>
+        </>
       )}
 
       {phase === "running" && (
@@ -242,9 +269,15 @@ export default function Home() {
                 <span>{selectedDifficulty.marker}</span>
                 {selectedDifficulty.label} · {duration} min
               </div>
-              <button className="text-button" type="button" onClick={returnToSetup}>
-                Restart
-              </button>
+              <div className="toolbar-right">
+                <span className={`test-status ${startedAt === null ? "waiting" : ""}`}>
+                  <i aria-hidden="true" />
+                  {startedAt === null ? "Waiting for you" : "Test in progress"}
+                </span>
+                <button className="text-button" type="button" onClick={returnToSetup}>
+                  Restart
+                </button>
+              </div>
             </div>
 
             <div className="progress-track" aria-label={`${Math.round(progress)}% complete`}>
@@ -287,13 +320,15 @@ export default function Home() {
               spellCheck={false}
             />
             <p className="focus-note">
-              Keep typing — mistakes are highlighted, and backspace is welcome.
+              {startedAt === null
+                ? "Type your first character when you’re ready — the timer is paused."
+                : "Keep typing — mistakes are highlighted, and backspace is welcome."}
             </p>
           </div>
 
           <aside className="live-stats">
-            <div className="timer-card">
-              <span>Time left</span>
+            <div className={`timer-card ${startedAt === null ? "timer-waiting" : ""}`}>
+              <span>{startedAt === null ? "Starts on first key" : "Time left"}</span>
               <strong>{formatTime(remaining)}</strong>
               <div className="timer-orbit" aria-hidden="true">
                 <span />

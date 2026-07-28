@@ -48,3 +48,19 @@ test("ships exactly 100 practice samples across all levels", async () => {
   assert.match(samples, /difficulty: "medium"/);
   assert.match(samples, /difficulty: "hard"/);
 });
+
+test("waits for the first character before starting the timer", async () => {
+  const page = await readFile(
+    new URL("../app/page.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    page,
+    /setPhase\("running"\);\s*setStartedAt\(null\);/,
+  );
+  assert.match(
+    page,
+    /startedAt === null && next\.length > 0[\s\S]*setStartedAt\(Date\.now\(\)\)/,
+  );
+  assert.match(page, /Starts on first key/);
+});
