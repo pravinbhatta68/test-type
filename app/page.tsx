@@ -141,11 +141,12 @@ export default function Home() {
   return (
     <main className="site-shell">
       <header className="topbar">
-        <a className="brand" href="#" aria-label="TypeBloom home">
+        <a className="brand" href="#" aria-label="Digital Pravin home">
           <span className="brand-mark" aria-hidden="true">
-            T
+            <b>D</b>
+            <b>P</b>
           </span>
-          <span>TypeBloom</span>
+          <span className="brand-name">DIGITAL PRAVIN</span>
         </a>
         <div className="topbar-actions">
           <span className="header-chip">Focus studio</span>
