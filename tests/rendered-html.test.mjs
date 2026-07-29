@@ -2,17 +2,31 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("Next.js pre-renders the TypeBloom experience", async () => {
-  const html = await readFile(
-    new URL("../.next/server/app/index.html", import.meta.url),
+test("protects the typing studio with verified Gmail authentication", async () => {
+  const auth = await readFile(
+    new URL("../auth.ts", import.meta.url),
     "utf8",
   );
-  assert.match(html, /<title>TypeBloom/);
-  assert.match(html, /Find your/);
-  assert.match(html, /Choose your level/);
-  assert.match(html, /Set the clock/);
-  assert.match(html, /Start typing/);
-  assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton/);
+  const home = await readFile(
+    new URL("../app/page.tsx", import.meta.url),
+    "utf8",
+  );
+  const login = await readFile(
+    new URL("../app/login/page.tsx", import.meta.url),
+    "utf8",
+  );
+  const route = await readFile(
+    new URL("../app/api/auth/[...nextauth]/route.ts", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(auth, /email_verified === true/);
+  assert.match(auth, /@gmail\.com/);
+  assert.match(auth, /@googlemail\.com/);
+  assert.match(home, /redirect\("\/login"\)/);
+  assert.match(login, /Continue with Gmail/);
+  assert.match(login, /signIn\("google"/);
+  assert.match(route, /export const \{ GET, POST \} = handlers/);
 });
 
 test("ships exactly 100 practice samples across all levels", async () => {
@@ -29,7 +43,7 @@ test("ships exactly 100 practice samples across all levels", async () => {
 
 test("waits for the first character before starting the timer", async () => {
   const page = await readFile(
-    new URL("../app/page.tsx", import.meta.url),
+    new URL("../app/typing-practice.tsx", import.meta.url),
     "utf8",
   );
   assert.match(
@@ -43,6 +57,6 @@ test("waits for the first character before starting the timer", async () => {
   assert.match(page, /Starts on first key/);
   assert.match(
     page,
-    /<a className="brand" href="\/" aria-label="Reload Digital Pravin typing practice">/,
+    /onClick=\{\(\) => window\.location\.reload\(\)\}/,
   );
 });

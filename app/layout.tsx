@@ -4,6 +4,9 @@ import "@fontsource-variable/fraunces";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
   title: "TypeBloom — Find your typing rhythm",
   description:
     "A bright, focused typing test with three difficulty levels, flexible timers, fresh samples, and clear speed and accuracy results.",
