@@ -955,6 +955,7 @@ textarea:focus-visible {
   font-variation-settings: "wght" 590;
   letter-spacing: -0.035em;
   line-height: 1.65;
+  word-spacing: 0.32em;
   cursor: text;
   user-select: none;
 }
