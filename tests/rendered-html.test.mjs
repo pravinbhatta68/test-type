@@ -41,4 +41,8 @@ test("waits for the first character before starting the timer", async () => {
     /startedAt === null && next\.length > 0[\s\S]*setStartedAt\(Date\.now\(\)\)/,
   );
   assert.match(page, /Starts on first key/);
+  assert.match(
+    page,
+    /<a className="brand" href="\/" aria-label="Reload Digital Pravin typing practice">/,
+  );
 });

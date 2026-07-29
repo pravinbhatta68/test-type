@@ -141,7 +141,7 @@ export default function Home() {
   return (
     <main className="site-shell">
       <header className="topbar">
-        <a className="brand" href="#" aria-label="Digital Pravin home">
+        <a className="brand" href="/" aria-label="Reload Digital Pravin typing practice">
           <span className="brand-mark" aria-hidden="true">
             <b>D</b>
             <b>P</b>
