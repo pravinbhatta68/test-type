@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { auth, signIn } from "@/auth";
+import GoogleSignInButton from "./google-sign-in-button";
 
 type LoginPageProps = {
   searchParams: Promise<{
@@ -30,22 +30,19 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         <div className="login-content">
-          <Link className="login-brand" href="/" aria-label="Digital Pravin home">
+          <div className="login-brand" aria-label="Digital Pravin">
             <span aria-hidden="true">DP</span>
             DIGITAL PRAVIN
-          </Link>
-          <p className="login-kicker">Members only</p>
+          </div>
+          <p className="login-kicker">Typing studio</p>
           <h1 id="login-title">
-            Sign in. <em>Type better.</em>
+            Welcome <em>Back</em>
           </h1>
-          <p className="login-copy">
-            Continue with a verified Gmail account to unlock the complete typing
-            studio, timed tests, and accuracy results.
-          </p>
+          <p className="login-copy">Sign in to continue</p>
 
           {error && (
             <p className="login-error" role="alert">
-              Access requires a verified address ending in @gmail.com.
+              Google authentication could not be completed. Please try again.
             </p>
           )}
 
@@ -55,15 +52,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               await signIn("google", { redirectTo: "/" });
             }}
           >
-            <button className="google-sign-in" type="submit">
-              <span aria-hidden="true">G</span>
-              Continue with Gmail
-            </button>
+            <GoogleSignInButton />
           </form>
 
           <p className="login-privacy">
-            Your password is handled by Google and is never shared with this
-            website.
+            Google handles your password securely. This website only receives
+            your name, email address, and profile picture.
           </p>
         </div>
       </section>

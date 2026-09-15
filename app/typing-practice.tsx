@@ -1,15 +1,32 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { signOut } from "next-auth/react";
 import Image from "next/image";
+import { signOut } from "next-auth/react";
+import ResultsDashboard from "./results-dashboard";
 import { sampleBank, type Difficulty } from "./samples";
+import {
+  aggregateMistakes,
+  calculatePerformance,
+  charactersMatch,
+  createWeakKeyPassage,
+  getWeakKeys,
+  HISTORY_STORAGE_KEY,
+  MAX_HISTORY_ITEMS,
+  PERSONAL_BEST_STORAGE_KEY,
+  readStoredHistory,
+  type TestMode,
+  type TestRecord,
+} from "./typing-analytics";
 
 type Phase = "setup" | "running" | "finished";
 
 type TypingPracticeProps = {
-  userEmail: string;
-  userName: string;
+  user: {
+    name: string;
+    email: string;
+    image: string | null;
+  };
 };
 
 const difficultyCopy: Record<
@@ -54,10 +71,7 @@ function formatTime(seconds: number) {
   return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-export default function TypingPractice({
-  userEmail,
-  userName,
-}: TypingPracticeProps) {
+export default function TypingPractice({ user }: TypingPracticeProps) {
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [duration, setDuration] = useState<(typeof durations)[number]>(1);
   const [phase, setPhase] = useState<Phase>("setup");
@@ -67,81 +81,283 @@ export default function TypingPractice({
   const [typed, setTyped] = useState("");
   const [remaining, setRemaining] = useState(60);
   const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [testDurationSeconds, setTestDurationSeconds] = useState(60);
+  const [testMode, setTestMode] = useState<TestMode>("standard");
+  const [totalErrors, setTotalErrors] = useState(0);
+  const [history, setHistory] = useState<TestRecord[]>([]);
+  const [personalBest, setPersonalBest] = useState(0);
+  const [finalResult, setFinalResult] = useState<TestRecord | null>(null);
+  const [isNewPersonalBest, setIsNewPersonalBest] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const passageViewportRef = useRef<HTMLDivElement>(null);
+  const passageTrackRef = useRef<HTMLSpanElement>(null);
   const currentRef = useRef<HTMLSpanElement>(null);
+  const trackOffsetRef = useRef(0);
+  const trackTargetOffsetRef = useRef(0);
+  const trackAnimationRef = useRef<number | null>(null);
+  const typedRef = useRef("");
+  const startedAtRef = useRef<number | null>(null);
+  const totalErrorsRef = useRef(0);
+  const mistakeCountsRef = useRef<Record<string, number>>({});
+  const hasFinishedRef = useRef(false);
 
   const stats = useMemo(() => {
-    let correct = 0;
-    for (let index = 0; index < typed.length; index += 1) {
-      if (typed[index] === passage[index]) correct += 1;
-    }
-    const elapsed = Math.max(1, duration * 60 - remaining);
-    const wpm = Math.round(correct / 5 / (elapsed / 60));
-    const accuracy = typed.length
-      ? Math.round((correct / typed.length) * 100)
-      : 100;
+    const elapsed = Math.max(1, testDurationSeconds - remaining);
     return {
-      correct,
-      errors: typed.length - correct,
-      wpm,
-      accuracy,
-      characters: typed.length,
+      ...calculatePerformance(typed, passage, elapsed),
+      totalErrors,
     };
-  }, [duration, passage, remaining, typed]);
+  }, [passage, remaining, testDurationSeconds, totalErrors, typed]);
 
-  const finishTest = useCallback(() => {
+  useEffect(() => {
+    const storedHistory = readStoredHistory(
+      window.localStorage.getItem(HISTORY_STORAGE_KEY),
+    );
+    const storedBest = Number.parseInt(
+      window.localStorage.getItem(PERSONAL_BEST_STORAGE_KEY) ?? "0",
+      10,
+    );
+    const bestFromHistory = storedHistory.reduce(
+      (best, record) => Math.max(best, record.wpm),
+      0,
+    );
+
+    const hydrationTimer = window.setTimeout(() => {
+      setHistory(storedHistory);
+      setPersonalBest(
+        Math.max(Number.isFinite(storedBest) ? storedBest : 0, bestFromHistory),
+      );
+    }, 0);
+
+    return () => window.clearTimeout(hydrationTimer);
+  }, []);
+
+  const finishTest = useCallback((finalTyped: string, elapsedSeconds: number) => {
+    if (hasFinishedRef.current) return;
+    hasFinishedRef.current = true;
+
+    const safeElapsed = Math.max(1, Math.min(testDurationSeconds, elapsedSeconds));
+    const performance = calculatePerformance(finalTyped, passage, safeElapsed);
+    const result: TestRecord = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      completedAt: new Date().toISOString(),
+      wpm: performance.wpm,
+      accuracy: performance.accuracy,
+      totalCharacters: finalTyped.length,
+      correctCharacters: performance.correct,
+      incorrectCharacters: performance.errors,
+      correctWords: performance.correctWords,
+      incorrectWords: performance.incorrectWords,
+      totalErrors: totalErrorsRef.current,
+      timeTakenSeconds: safeElapsed,
+      difficulty,
+      durationMinutes: Math.ceil(testDurationSeconds / 60),
+      mode: testMode,
+      mistakeCounts: { ...mistakeCountsRef.current },
+    };
+
+    setFinalResult(result);
+    setIsNewPersonalBest(result.wpm > personalBest);
+    setPersonalBest((previousBest) => {
+      const nextBest = Math.max(previousBest, result.wpm);
+      window.localStorage.setItem(PERSONAL_BEST_STORAGE_KEY, String(nextBest));
+      return nextBest;
+    });
+    setHistory((previousHistory) => {
+      const nextHistory = [...previousHistory, result].slice(-MAX_HISTORY_ITEMS);
+      window.localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(nextHistory));
+      return nextHistory;
+    });
     setPhase("finished");
     setStartedAt(null);
-  }, []);
+    startedAtRef.current = null;
+  }, [difficulty, passage, personalBest, testDurationSeconds, testMode]);
 
   useEffect(() => {
     if (phase !== "running" || startedAt === null) return;
 
     const tick = () => {
       const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-      const next = Math.max(0, duration * 60 - elapsed);
+      const next = Math.max(0, testDurationSeconds - elapsed);
       setRemaining(next);
-      if (next === 0) finishTest();
+      if (next === 0) finishTest(typedRef.current, testDurationSeconds);
     };
 
     tick();
     const timer = window.setInterval(tick, 250);
     return () => window.clearInterval(timer);
-  }, [duration, finishTest, phase, startedAt]);
+  }, [finishTest, phase, startedAt, testDurationSeconds]);
 
   useEffect(() => {
     if (phase === "running") inputRef.current?.focus();
   }, [phase]);
 
-  useEffect(() => {
-    currentRef.current?.scrollIntoView({ block: "nearest" });
-  }, [typed.length]);
+  const startTrackAnimation = useCallback(() => {
+    if (trackAnimationRef.current !== null) return;
 
-  const startTest = () => {
-    setPassage(createPassage(difficulty, duration));
+    let previousTime = performance.now();
+    const animate = (currentTime: number) => {
+      const elapsed = Math.min(32, currentTime - previousTime);
+      previousTime = currentTime;
+      const currentOffset = trackOffsetRef.current;
+      const targetOffset = trackTargetOffsetRef.current;
+      const distance = targetOffset - currentOffset;
+      const easing = 1 - Math.exp(-18 * (elapsed / 1000));
+      const nextOffset =
+        Math.abs(distance) < 0.12
+          ? targetOffset
+          : currentOffset + distance * easing;
+
+      trackOffsetRef.current = nextOffset;
+      if (passageTrackRef.current) {
+        passageTrackRef.current.style.transform =
+          `translate3d(${nextOffset}px, 0, 0)`;
+      }
+
+      if (nextOffset === targetOffset) {
+        trackAnimationRef.current = null;
+        return;
+      }
+      trackAnimationRef.current = window.requestAnimationFrame(animate);
+    };
+
+    trackAnimationRef.current = window.requestAnimationFrame(animate);
+  }, []);
+
+  const updateTrackTarget = useCallback((moveImmediately = false) => {
+    const viewport = passageViewportRef.current;
+    const track = passageTrackRef.current;
+    const current = currentRef.current;
+    if (!viewport || !track || !current) return;
+
+    const focusPoint = viewport.clientWidth * 0.38;
+    const desiredOffset = focusPoint - current.offsetLeft;
+    const furthestOffset = Math.min(0, viewport.clientWidth - track.scrollWidth);
+    const targetOffset = Math.max(
+      furthestOffset,
+      Math.min(0, desiredOffset),
+    );
+    trackTargetOffsetRef.current = targetOffset;
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (moveImmediately || prefersReducedMotion) {
+      if (trackAnimationRef.current !== null) {
+        window.cancelAnimationFrame(trackAnimationRef.current);
+        trackAnimationRef.current = null;
+      }
+      trackOffsetRef.current = targetOffset;
+      track.style.transform = `translate3d(${targetOffset}px, 0, 0)`;
+      return;
+    }
+
+    startTrackAnimation();
+  }, [startTrackAnimation]);
+
+  useEffect(() => {
+    const animationFrame = window.requestAnimationFrame(() => {
+      updateTrackTarget(typed.length === 0);
+    });
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [passage, typed.length, updateTrackTarget]);
+
+  useEffect(() => {
+    const handleResize = () => updateTrackTarget(typedRef.current.length === 0);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (trackAnimationRef.current !== null) {
+        window.cancelAnimationFrame(trackAnimationRef.current);
+        trackAnimationRef.current = null;
+      }
+    };
+  }, [updateTrackTarget]);
+
+  const startSession = (
+    nextPassage: string,
+    durationSeconds: number,
+    mode: TestMode,
+  ) => {
+    setPassage(nextPassage);
     setTyped("");
-    setRemaining(duration * 60);
+    typedRef.current = "";
+    setRemaining(durationSeconds);
+    setTestDurationSeconds(durationSeconds);
+    setTestMode(mode);
+    setTotalErrors(0);
+    totalErrorsRef.current = 0;
+    mistakeCountsRef.current = {};
+    hasFinishedRef.current = false;
+    setFinalResult(null);
+    setIsNewPersonalBest(false);
     setPhase("running");
     setStartedAt(null);
+    startedAtRef.current = null;
     window.setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  const startTest = () => {
+    startSession(createPassage(difficulty, duration), duration * 60, "standard");
+  };
+
+  const startWeakKeyPractice = () => {
+    const weakKeys = getWeakKeys(aggregateMistakes(history)).map(({ key }) => key);
+    startSession(createWeakKeyPassage(weakKeys), 60, "weak-keys");
   };
 
   const returnToSetup = () => {
     setPhase("setup");
     setTyped("");
+    typedRef.current = "";
     setRemaining(duration * 60);
+    setTestDurationSeconds(duration * 60);
+    setTestMode("standard");
+    setTotalErrors(0);
+    totalErrorsRef.current = 0;
+    mistakeCountsRef.current = {};
+    hasFinishedRef.current = false;
+    setFinalResult(null);
+    setIsNewPersonalBest(false);
     setStartedAt(null);
+    startedAtRef.current = null;
   };
 
   const handleInput = (value: string) => {
     if (phase !== "running") return;
     const next = value.slice(0, passage.length);
-    if (startedAt === null && next.length > 0) {
-      setStartedAt(Date.now());
+    if (startedAtRef.current === null && next.length > 0) {
+      const startTime = Date.now();
+      setStartedAt(startTime);
+      startedAtRef.current = startTime;
+    }
+    if (next.length > typed.length) {
+      let addedErrors = 0;
+      const nextMistakeCounts = { ...mistakeCountsRef.current };
+      for (let index = typed.length; index < next.length; index += 1) {
+        if (!charactersMatch(next[index], passage[index])) {
+          addedErrors += 1;
+          const expectedKey = passage[index]?.toUpperCase();
+          if (/^[A-Z]$/.test(expectedKey)) {
+            nextMistakeCounts[expectedKey] =
+              (nextMistakeCounts[expectedKey] ?? 0) + 1;
+          }
+        }
+      }
+      if (addedErrors > 0) {
+        totalErrorsRef.current += addedErrors;
+        mistakeCountsRef.current = nextMistakeCounts;
+        setTotalErrors(totalErrorsRef.current);
+      }
     }
     setTyped(next);
+    typedRef.current = next;
     if (next.length === passage.length) {
-      window.setTimeout(finishTest, 0);
+      const elapsed = startedAtRef.current
+        ? Math.ceil((Date.now() - startedAtRef.current) / 1000)
+        : 1;
+      window.setTimeout(() => finishTest(next, elapsed), 0);
     }
   };
 
@@ -164,20 +380,37 @@ export default function TypingPractice({
           <span className="brand-name">DIGITAL PRAVIN</span>
         </button>
         <div className="topbar-actions">
-          <span className="account-chip" title={userEmail}>
-            <b aria-hidden="true">{userName.charAt(0).toUpperCase()}</b>
-            <span>{userName}</span>
-          </span>
           <div className="topbar-note">
             <span className="live-dot" aria-hidden="true" />
             100 fresh practice samples
           </div>
+          <span className="account-chip" title={user.email}>
+            {user.image ? (
+              <Image
+                className="account-avatar"
+                src={user.image}
+                alt={`${user.name} profile picture`}
+                width={28}
+                height={28}
+              />
+            ) : (
+              <b aria-hidden="true">{user.name.charAt(0).toUpperCase()}</b>
+            )}
+            <span className="account-copy">
+              <strong>{user.name}</strong>
+              <small>{user.email}</small>
+            </span>
+          </span>
           <button
             className="sign-out-control"
             type="button"
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            disabled={isSigningOut}
+            onClick={async () => {
+              setIsSigningOut(true);
+              await signOut({ redirectTo: "/login" });
+            }}
           >
-            Sign out
+            {isSigningOut ? "Signing out…" : "Sign out"}
           </button>
         </div>
       </header>
@@ -313,8 +546,10 @@ export default function TypingPractice({
           <div className="typing-card">
             <div className="test-toolbar">
               <div className="test-tag">
-                <span>{selectedDifficulty.marker}</span>
-                {selectedDifficulty.label} · {duration} min
+                <span>{testMode === "weak-keys" ? "WK" : selectedDifficulty.marker}</span>
+                {testMode === "weak-keys"
+                  ? "Weak keys · 1 min"
+                  : `${selectedDifficulty.label} · ${duration} min`}
               </div>
               <div className="toolbar-right">
                 <span className={`test-status ${startedAt === null ? "waiting" : ""}`}>
@@ -333,27 +568,32 @@ export default function TypingPractice({
 
             <div
               className="passage"
+              ref={passageViewportRef}
               aria-hidden="true"
               onClick={() => inputRef.current?.focus()}
             >
-              {passage.split("").map((character, index) => {
-                let className = "pending";
-                if (index < typed.length) {
-                  className = typed[index] === character ? "correct" : "incorrect";
-                } else if (index === typed.length) {
-                  className = "current";
-                }
-                return (
-                  <span
-                    // Character position is stable for the life of each passage.
-                    key={index}
-                    className={className}
-                    ref={index === typed.length ? currentRef : undefined}
-                  >
-                    {character}
-                  </span>
-                );
-              })}
+              <span className="passage-track" ref={passageTrackRef}>
+                {passage.split("").map((character, index) => {
+                  let className = "pending";
+                  if (index < typed.length) {
+                    className = charactersMatch(typed[index], character)
+                      ? "correct"
+                      : "incorrect";
+                  } else if (index === typed.length) {
+                    className = "current";
+                  }
+                  return (
+                    <span
+                      // Character position is stable for the life of each passage.
+                      key={index}
+                      className={className}
+                      ref={index === typed.length ? currentRef : undefined}
+                    >
+                      {character}
+                    </span>
+                  );
+                })}
+              </span>
             </div>
 
             <textarea
@@ -381,72 +621,42 @@ export default function TypingPractice({
                 <span />
               </div>
             </div>
-            <div className="mini-stat">
-              <span>Live pace</span>
-              <strong>{stats.wpm}</strong>
-              <small>WPM</small>
-            </div>
-            <div className="mini-stat pink-stat">
-              <span>Accuracy</span>
-              <strong>{stats.accuracy}</strong>
-              <small>%</small>
+            <div className="live-stat-grid">
+              <div className="mini-stat">
+                <span>Live pace</span>
+                <strong>{stats.wpm}</strong>
+                <small>WPM</small>
+              </div>
+              <div className="mini-stat pink-stat">
+                <span>Accuracy</span>
+                <strong>{stats.accuracy}</strong>
+                <small>%</small>
+              </div>
+              <div className="mini-stat compact-stat">
+                <span>Correct</span>
+                <strong>{stats.correct}</strong>
+                <small>keys</small>
+              </div>
+              <div className="mini-stat compact-stat error-stat">
+                <span>Errors</span>
+                <strong>{stats.totalErrors}</strong>
+                <small>total</small>
+              </div>
             </div>
           </aside>
         </section>
       )}
 
-      {phase === "finished" && (
-        <section className="result-card" aria-live="polite">
-          <div className="result-copy">
-            <p className="eyebrow">
-              <span>Done</span> Session complete
-            </p>
-            <h2>
-              Nice flow.
-              <br />
-              <em>Keep it growing.</em>
-            </h2>
-            <p>
-              Your result uses correct keystrokes, so speed and precision both
-              count. Come back tomorrow and make the rhythm feel even easier.
-            </p>
-            <div className="result-actions">
-              <button className="start-button" type="button" onClick={startTest}>
-                Try a new sample <span aria-hidden="true">↗</span>
-              </button>
-              <button className="secondary-button" type="button" onClick={returnToSetup}>
-                Change settings
-              </button>
-            </div>
-          </div>
-
-          <div className="score-board">
-            <div className="hero-score yellow-score">
-              <span>Your speed</span>
-              <strong>{stats.wpm}</strong>
-              <small>words / minute</small>
-            </div>
-            <div className="hero-score pink-score">
-              <span>Accuracy</span>
-              <strong>{stats.accuracy}%</strong>
-              <small>{stats.errors} errors</small>
-            </div>
-            <div className="detail-row">
-              <div>
-                <span>Correct keys</span>
-                <strong>{stats.correct}</strong>
-              </div>
-              <div>
-                <span>Characters</span>
-                <strong>{stats.characters}</strong>
-              </div>
-              <div>
-                <span>Duration</span>
-                <strong>{duration} min</strong>
-              </div>
-            </div>
-          </div>
-        </section>
+      {phase === "finished" && finalResult && (
+        <ResultsDashboard
+          result={finalResult}
+          history={history}
+          personalBest={personalBest}
+          isNewPersonalBest={isNewPersonalBest}
+          onTryAgain={startTest}
+          onPracticeWeakKeys={startWeakKeyPractice}
+          onChangeSettings={returnToSetup}
+        />
       )}
 
       <footer>

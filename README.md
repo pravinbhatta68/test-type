@@ -16,24 +16,26 @@ npx auth secret
 npm run dev
 ```
 
-Create a Google OAuth 2.0 Web application, then put its credentials in
-`.env.local`:
+Copy `.env.example` to `.env.local`, then add your Google OAuth Web client ID
+and secret before starting the app. Open
+[http://localhost:3000](http://localhost:3000). Authentication uses secure JWT
+sessions and does not require a database. Personal best, recent results, and
+weak-key data remain stored only in the current browser with `localStorage`.
 
-```dotenv
-AUTH_SECRET=the-secret-generated-by-npx-auth-secret
-AUTH_GOOGLE_ID=your-google-client-id
-AUTH_GOOGLE_SECRET=your-google-client-secret
+Required variables:
+
+```text
+AUTH_SECRET=
+AUTH_GOOGLE_ID=
+AUTH_GOOGLE_SECRET=
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-Add this local authorized redirect URI to the Google OAuth client:
+The local Google OAuth callback is:
 
 ```text
 http://localhost:3000/api/auth/callback/google
 ```
-
-Open [http://localhost:3000](http://localhost:3000). The typing studio is
-available only after signing in with a verified Gmail account.
 
 ## Production
 
@@ -57,16 +59,26 @@ The expected settings are:
 - Output directory: leave empty
 - Install command: `npm install`
 
-In the Vercel project settings, add `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and
-`AUTH_GOOGLE_SECRET` to the required environments. Set `NEXT_PUBLIC_SITE_URL`
-to the production site URL. Also add the production callback URL to the Google
-OAuth client:
+Add all four environment variables above in Vercel. Set
+`NEXT_PUBLIC_SITE_URL` to the production site URL:
+
+```text
+https://YOUR_DOMAIN
+```
+
+Register this production callback in Google Cloud, replacing the placeholder
+with the exact Vercel or custom domain:
 
 ```text
 https://YOUR_DOMAIN/api/auth/callback/google
 ```
 
-Keep these values private and never commit `.env.local`.
+## Practice analytics
+
+Every completed test records final WPM, accuracy, character totals, elapsed
+time, and mistaken letter keys. The results dashboard includes a personal best,
+the 10 most recent tests, and a locally generated weak-key practice session.
+Clearing browser site data resets this history.
 
 ## Verification
 
@@ -74,5 +86,6 @@ Keep these values private and never commit `.env.local`.
 npm test
 ```
 
-The test command builds the app with Next.js and verifies the Gmail access
-gate, the 100 typing samples, and the first-keystroke timer behavior.
+The test command builds the app with Next.js and verifies the typing samples,
+first-keystroke timer, local progress history, personal best, results
+dashboard, and weak-key practice behavior.
