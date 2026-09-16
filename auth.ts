@@ -24,5 +24,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return Boolean(session?.user?.email);
     },
   },
+  events: {
+    async signIn({ account, user }) {
+      if (account?.provider !== "google" || !user.email) return;
+
+      const webhookUrl = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
+      if (!webhookUrl) {
+        console.warn(
+          "[auth] Google Sheets sign-in logging skipped: webhook is not configured.",
+        );
+        return;
+      }
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: user.name || "",
+            email: user.email,
+          }),
+          signal: AbortSignal.timeout(5000),
+        });
+
+        if (!response.ok) {
+          console.warn(
+            `[auth] Google Sheets sign-in logging returned status ${response.status}.`,
+          );
+        }
+      } catch (error) {
+        const errorType = error instanceof Error ? error.name : "UnknownError";
+        console.warn(
+          `[auth] Google Sheets sign-in logging failed (${errorType}).`,
+        );
+      }
+    },
+  },
   trustHost: true,
 });
